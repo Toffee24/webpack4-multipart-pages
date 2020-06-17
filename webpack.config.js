@@ -20,7 +20,7 @@ function generateMultiPages() {
       const name = entry.match(/.+\/(\w+)\/index\.js/)[1]
       multipart.extractCss.push(
         new MiniCssExtractPlugin({
-          filename: '[name]/[name].css?v=[contenthash]'
+          filename: '[name]/[name].[hash].css'
         })
       )
       const isCustomTemplateExist = fs.existsSync(`./src/pages/${name}/index.html`)
@@ -52,7 +52,7 @@ module.exports = {
   entry: multiConfig.entry,
   output: {
     path: path.join(__dirname, 'dist'),
-    filename: '[name]/index.[hash].js'
+    filename: '[name]/[name].[hash].js'
   },
   module: {
     rules: [
@@ -122,7 +122,6 @@ module.exports = {
     contentBase: path.join(__dirname, 'dist'),
     compress: false,
     port: 3000,
-    overlay: true,
     inline: true,
     hot: true,
     quiet: true
@@ -132,10 +131,12 @@ module.exports = {
     aggregateTimeout: 500,
     poll: 1000
   },
-  devtool: 'cheap-eval-source-map',
+  devtool: process.env.NODE_ENV === 'production' ? 'none' : 'cheap-eval-source-map',
   resolve: {
+    extensions: ['.js', '.vue', '.json'],
     alias: {
-      '@': path.resolve('./src')
+      '@': path.resolve('./src'),
+      vue$: 'vue/dist/vue.runtime.min.js'
     }
   },
   mode: process.env.NODE_ENV,
@@ -144,7 +145,7 @@ module.exports = {
       cacheGroups: {
         commons: {
           chunks: 'initial',
-          name: 'common',
+          name: 'library',
           minChunks: 2,
           maxInitialRequests: 5,
           minSize: 0,
@@ -158,22 +159,6 @@ module.exports = {
     ...multiConfig.extractCss,
     ...multiConfig.html,
     new VueLoaderPlugin(),
-    new Webpack.optimize.SplitChunksPlugin({
-      /* chunks: 'all',
-      minSize: 30000,
-      minChunks: 1,
-      maxAsyncRequests: 5,
-      maxInitialRequests: 3,
-      automaticNameDelimiter: '-',
-      name: true,*/
-      cacheGroups: {
-        vue: {
-          test: /[\\/]node_modules[\\/]vue[\\/]/,
-          priority: -10,
-          name: 'library'
-        }
-      }
-    }),
     new Webpack.DefinePlugin({
       'process.env': {
         NODE_ENV: JSON.stringify(process.env.NODE_ENV)
